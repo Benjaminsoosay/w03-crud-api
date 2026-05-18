@@ -1,0 +1,308 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "W03 CRUD API",
+    "description": "API with two collections (items and categories). Full CRUD, validation, error handling.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8083",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/items": {
+      "get": {
+        "summary": "Get all items",
+        "tags": ["Items"],
+        "responses": {
+          "200": {
+            "description": "Array of items (each with 8 fields: name, description, price, category, inStock, sku, weight, manufacturer)"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new item",
+        "tags": ["Items"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "description", "price", "category", "inStock", "sku"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "category": { "type": "string" },
+                  "inStock": { "type": "boolean" },
+                  "sku": { "type": "string" },
+                  "weight": { "type": "number" },
+                  "manufacturer": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item created"
+          },
+          "412": {
+            "description": "Validation failed – missing required fields or invalid type"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/items/{id}": {
+      "get": {
+        "summary": "Get an item by ID",
+        "tags": ["Items"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "MongoDB ObjectId (24 hex chars)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item found"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update an item (partial update allowed)",
+        "tags": ["Items"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "category": { "type": "string" },
+                  "inStock": { "type": "boolean" },
+                  "sku": { "type": "string" },
+                  "weight": { "type": "number" },
+                  "manufacturer": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item updated"
+          },
+          "400": {
+            "description": "Invalid ID format or invalid JSON"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "412": {
+            "description": "Validation failed for sent fields"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an item",
+        "tags": ["Items"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "summary": "Get all categories",
+        "tags": ["Categories"],
+        "responses": {
+          "200": {
+            "description": "Array of categories"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new category",
+        "tags": ["Categories"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created"
+          },
+          "400": {
+            "description": "Missing 'name' field"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "summary": "Get a category by ID",
+        "tags": ["Categories"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category found"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a category",
+        "tags": ["Categories"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated"
+          },
+          "400": {
+            "description": "Invalid ID or missing name"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a category",
+        "tags": ["Categories"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  }
+}

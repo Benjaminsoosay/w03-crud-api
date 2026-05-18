@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Ultrabook X1",
+    "description": "Lightweight laptop with 16GB RAM and 512GB SSD",
+    "price": 1299.99,
+    "category": "Electronics",
+    "inStock": true,
+    "sku": "LAP-X1-001",
+    "weight": 1.2,
+    "manufacturer": "TechCorp"
+  },
+  {
+    "name": "Ergonomic Office Chair",
+    "description": "Mesh back, adjustable lumbar support, breathable",
+    "price": 249.99,
+    "category": "Furniture",
+    "inStock": true,
+    "sku": "CHAIR-ERG-022",
+    "weight": 15.5,
+    "manufacturer": "ComfortSeating"
+  },
+  {
+    "name": "Wireless Mechanical Keyboard",
+    "description": "RGB backlit, hot-swappable switches, USB-C",
+    "price": 89.99,
+    "category": "Electronics",
+    "inStock": false,
+    "sku": "KEY-MECH-89",
+    "weight": 0.8,
+    "manufacturer": "KeyMaster"
+  },
+  {
+    "name": "Stainless Steel Water Bottle",
+    "description": "Vacuum insulated, 32oz, keeps cold for 24 hours",
+    "price": 24.95,
+    "category": "Kitchen",
+    "inStock": true,
+    "sku": "BOTTLE-STL-32",
+    "weight": 0.45,
+    "manufacturer": "EcoLife"
+  },
+  {
+    "name": "Noise Cancelling Headphones",
+    "description": "Over‑ear, 40hr battery life, Bluetooth 5.2",
+    "price": 199.00,
+    "category": "Electronics",
+    "inStock": true,
+    "sku": "HEAD-NC-99",
+    "weight": 0.3,
+    "manufacturer": "SoundWave"
+  }
+]
