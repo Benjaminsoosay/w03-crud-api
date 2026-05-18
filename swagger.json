@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8083",
-      "description": "Local development server"
+      "url": "https://w03-crud-api-vmrb.onrender.com",
+      "description": "Production server on Render"
     }
   ],
   "paths": {
