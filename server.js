@@ -5,7 +5,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const session = require('express-session');
 const passport = require('passport');
-const GitHubStrategy = require('passport-github2').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 // Import authentication middleware
 const ensureAuthenticated = require('./middleware/auth');
@@ -30,21 +30,21 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json());
 
 // ========================
-// Session Configuration (Must come BEFORE Passport)
+// Session Configuration
 // ========================
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-random-secret-key-change-this-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false,  // Set to true if using HTTPS (Render uses HTTPS)
+        secure: false,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
 // ========================
-// Passport Initialization (After Session)
+// Passport Initialization
 // ========================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -58,19 +58,20 @@ passport.deserializeUser((obj, done) => {
     done(null, obj);
 });
 
-// GitHub OAuth Strategy
-passport.use(new GitHubStrategy({
-    clientID: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:8083/auth/github/callback'
+// ========================
+// Google OAuth Strategy Only
+// ========================
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:8083/auth/google/callback'
 }, (accessToken, refreshToken, profile, done) => {
-    // You can save user to database here
-    console.log('✅ GitHub Authentication successful:', profile.displayName || profile.username);
+    console.log('✅ Google Authentication successful:', profile.displayName);
     return done(null, profile);
 }));
 
 // ========================
-// CORS (Must come after Passport if you need auth headers)
+// CORS
 // ========================
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -84,7 +85,6 @@ app.use((req, res, next) => {
   );
 
   if (req.method === 'OPTIONS') return res.sendStatus(200);
-
   next();
 });
 
@@ -97,11 +97,12 @@ app.get('/', (req, res) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     res.json({
       status: 'authenticated',
-      message: `✅ Logged in as: ${req.user.displayName || req.user.username}`,
+      message: `✅ Logged in as: ${req.user.displayName}`,
       authenticated: true,
       user: {
-        username: req.user.username,
+        id: req.user.id,
         displayName: req.user.displayName,
+        email: req.user.emails?.[0]?.value,
         profileUrl: req.user.profileUrl
       },
       protected_endpoints: [
@@ -120,22 +121,20 @@ app.get('/', (req, res) => {
       status: 'unauthenticated',
       message: '❌ Not logged in. Please authenticate to access protected endpoints',
       authenticated: false,
-      login_url: '/auth/github',
+      login_url: '/auth/google',
       documentation: '/api-docs'
     });
   }
 });
 
-// GitHub authentication endpoint
-app.get('/auth/github', 
-  passport.authenticate('github', { scope: ['user:email'] })
+// Google authentication endpoints
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
-// GitHub callback endpoint
-app.get('/auth/github/callback', 
-  passport.authenticate('github', { failureRedirect: '/' }),
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    // Successful authentication, redirect to API docs
     res.redirect('/api-docs');
   }
 );
@@ -166,9 +165,9 @@ app.get('/auth/user', (req, res) => {
       authenticated: true,
       user: {
         id: req.user.id,
-        username: req.user.username,
         displayName: req.user.displayName,
-        profileUrl: req.user.profileUrl
+        email: req.user.emails?.[0]?.value,
+        provider: 'google'
       }
     });
   } else {
@@ -180,28 +179,21 @@ app.get('/auth/user', (req, res) => {
 app.get('/protected-test', ensureAuthenticated, (req, res) => {
   res.json({ 
     message: '🎉 You have successfully accessed a protected route!',
-    user: req.user.displayName || req.user.username,
+    user: req.user.displayName,
     timestamp: new Date().toISOString()
   });
 });
 
 // ========================
-// Swagger Docs with OAuth Redirect Support (UPDATED)
+// Swagger Docs
 // ========================
-// Swagger UI Options to enable OAuth2 popup
 const swaggerOptions = {
   swaggerOptions: {
     oauth2RedirectUrl: 'https://w03-crud-api-1.onrender.com/api-docs/oauth2-redirect.html',
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
   },
 };
 
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument, swaggerOptions)
-);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 
 // ========================
 // MongoDB Connection
@@ -212,7 +204,6 @@ const connectDB = async () => {
   try {
     const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
-
     db = client.db();
     console.log('✅ Connected to MongoDB');
   } catch (err) {
@@ -232,7 +223,6 @@ app.use((req, res, next) => {
       error: 'Database not ready. Try again in a few seconds.'
     });
   }
-
   req.db = db;
   next();
 });
@@ -300,7 +290,6 @@ app.post('/items', ensureAuthenticated, async (req, res) => {
   try {
     const { name, description, price, category } = req.body;
     
-    // Data validation
     if (!name || !description) {
       return res.status(400).json({ 
         error: 'Validation failed: Name and description are required fields' 
@@ -313,7 +302,7 @@ app.post('/items', ensureAuthenticated, async (req, res) => {
       price: price || 0,
       category: category || 'uncategorized',
       createdAt: new Date(),
-      createdBy: req.user?.username || 'github-user'
+      createdBy: req.user?.displayName || 'google-user'
     };
     
     const result = await db.collection('items').insertOne(newItem);
@@ -332,20 +321,17 @@ app.post('/items', ensureAuthenticated, async (req, res) => {
 app.put('/items/:id', ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
     
     const updateData = req.body;
-    
-    // Validation
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No update data provided' });
     }
     
     updateData.updatedAt = new Date();
-    updateData.updatedBy = req.user?.username || 'github-user';
+    updateData.updatedBy = req.user?.displayName || 'google-user';
     
     const result = await db.collection('items').updateOne(
       { _id: new ObjectId(id) },
@@ -366,13 +352,11 @@ app.put('/items/:id', ensureAuthenticated, async (req, res) => {
 app.delete('/items/:id', ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
     
     const result = await db.collection('items').deleteOne({ _id: new ObjectId(id) });
-    
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -387,8 +371,6 @@ app.delete('/items/:id', ensureAuthenticated, async (req, res) => {
 app.post('/categories', ensureAuthenticated, async (req, res) => {
   try {
     const { name, description } = req.body;
-    
-    // Data validation
     if (!name) {
       return res.status(400).json({ error: 'Category name is required' });
     }
@@ -397,11 +379,10 @@ app.post('/categories', ensureAuthenticated, async (req, res) => {
       name,
       description: description || '',
       createdAt: new Date(),
-      createdBy: req.user?.username || 'github-user'
+      createdBy: req.user?.displayName || 'google-user'
     };
     
     const result = await db.collection('categories').insertOne(newCategory);
-    
     res.status(201).json({ 
       message: 'Category created successfully',
       _id: result.insertedId,
@@ -416,19 +397,16 @@ app.post('/categories', ensureAuthenticated, async (req, res) => {
 app.put('/categories/:id', ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
     
     const updateData = req.body;
-    
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No update data provided' });
     }
     
     updateData.updatedAt = new Date();
-    
     const result = await db.collection('categories').updateOne(
       { _id: new ObjectId(id) },
       { $set: updateData }
@@ -437,7 +415,6 @@ app.put('/categories/:id', ensureAuthenticated, async (req, res) => {
     if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
-    
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -448,17 +425,14 @@ app.put('/categories/:id', ensureAuthenticated, async (req, res) => {
 app.delete('/categories/:id', ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
     
     const result = await db.collection('categories').deleteOne({ _id: new ObjectId(id) });
-    
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
-    
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -478,7 +452,7 @@ app.use((req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
   console.log(`📘 Swagger docs: http://localhost:${port}/api-docs`);
-  console.log(`🔐 GitHub Auth: http://localhost:${port}/auth/github`);
+  console.log(`🔐 Google Auth: http://localhost:${port}/auth/google`);
   console.log(`✅ Protected routes require authentication`);
   console.log(`📊 Public routes: GET /items, GET /categories`);
   console.log(`🔒 Protected routes: POST, PUT, DELETE on /items and /categories`);
