@@ -2,32 +2,402 @@
   "openapi": "3.0.0",
   "info": {
     "title": "W03 CRUD API",
-    "description": "API with two collections (items and categories). Full CRUD, validation, error handling.",
-    "version": "1.0.0"
+    "description": "API with two collections (items and categories). Full CRUD, validation, error handling, and GitHub OAuth authentication.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
   },
   "servers": [
     {
       "url": "https://w03-crud-api-vmrb.onrender.com",
-      "description": "Production server on Render"
+      "description": "Production server on Render (Original)"
+    },
+    {
+      "url": "https://w03-crud-api-1.onrender.com",
+      "description": "Production server on Render (Instance 2 - Main)"
+    },
+    {
+      "url": "http://localhost:8083",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "GitHub OAuth2 Authentication - Click 'Authorize' button below and login with GitHub",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://github.com/login/oauth/authorize",
+            "tokenUrl": "https://github.com/login/oauth/access_token",
+            "scopes": {
+              "read:user": "Read user information",
+              "user:email": "Read user email addresses"
+            }
+          }
+        }
+      },
+      "apiKey": {
+        "type": "apiKey",
+        "name": "API_SECRET",
+        "in": "header",
+        "description": "API Secret key for additional security"
+      }
+    },
+    "schemas": {
+      "Item": {
+        "type": "object",
+        "required": ["name", "description", "price", "category", "inStock", "sku"],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "description": "Item name",
+            "example": "Laptop Computer"
+          },
+          "description": {
+            "type": "string",
+            "description": "Item description",
+            "example": "High-performance laptop with 16GB RAM"
+          },
+          "price": {
+            "type": "number",
+            "description": "Item price",
+            "example": 999.99
+          },
+          "category": {
+            "type": "string",
+            "description": "Item category",
+            "example": "Electronics"
+          },
+          "inStock": {
+            "type": "boolean",
+            "description": "Stock availability",
+            "example": true
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock Keeping Unit",
+            "example": "LAP-001"
+          },
+          "weight": {
+            "type": "number",
+            "description": "Item weight in kg",
+            "example": 1.5
+          },
+          "manufacturer": {
+            "type": "string",
+            "description": "Manufacturer name",
+            "example": "TechCorp"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created the item"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "description": "Category name",
+            "example": "Electronics"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category description",
+            "example": "Electronic devices and accessories"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created the category"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "description": "Authentication status"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "GitHub user ID"
+              },
+              "username": {
+                "type": "string",
+                "description": "GitHub username"
+              },
+              "displayName": {
+                "type": "string",
+                "description": "User's display name"
+              }
+            }
+          }
+        }
+      },
+      "Environment": {
+        "type": "object",
+        "properties": {
+          "mongodb": {
+            "type": "string",
+            "description": "MongoDB connection string (Atlas cluster)",
+            "example": "mongodb+srv://username@cluster.wnsuaax.mongodb.net/w03_project_db"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Server port",
+            "example": 8083
+          },
+          "github": {
+            "type": "object",
+            "properties": {
+              "clientId": {
+                "type": "string",
+                "description": "GitHub OAuth Client ID",
+                "example": "Ov23liVpFGbPyMJFrYYM"
+              },
+              "callbackUrl": {
+                "type": "string",
+                "description": "GitHub OAuth Callback URL",
+                "example": "https://w03-crud-api-1.onrender.com/auth/github/callback"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": ["read:user", "user:email"]
     }
   ],
   "paths": {
+    "/": {
+      "get": {
+        "summary": "Root endpoint - API status",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "API is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "W03 CRUD API is running"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "OK"
+                    },
+                    "documentation": {
+                      "type": "string",
+                      "example": "/api-docs"
+                    },
+                    "authentication": {
+                      "type": "object"
+                    },
+                    "environment": {
+                      "type": "string",
+                      "example": "production"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/status": {
+      "get": {
+        "summary": "Check authentication status",
+        "tags": ["Authentication"],
+        "description": "Returns the current user's authentication status",
+        "responses": {
+          "200": {
+            "description": "Authentication status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/github": {
+      "get": {
+        "summary": "Authenticate with GitHub",
+        "tags": ["Authentication"],
+        "description": "Redirects to GitHub for OAuth authentication. Uses Client ID: Ov23liVpFGbPyMJFrYYM",
+        "externalDocs": {
+          "description": "GitHub OAuth Documentation",
+          "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps"
+        },
+        "responses": {
+          "302": {
+            "description": "Redirect to GitHub login page",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "GitHub OAuth authorization URL"
+              }
+            }
+          },
+          "500": {
+            "description": "Authentication error"
+          }
+        }
+      }
+    },
+    "/auth/github/callback": {
+      "get": {
+        "summary": "GitHub OAuth callback",
+        "tags": ["Authentication"],
+        "description": "GitHub redirects here after authentication. This endpoint should not be called directly.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Authorization code from GitHub"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to API docs on success or home on failure"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "get": {
+        "summary": "Logout user",
+        "tags": ["Authentication"],
+        "description": "Logs out the currently authenticated user and destroys the session",
+        "responses": {
+          "200": {
+            "description": "Successfully logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Logged out successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Logout failed"
+          }
+        }
+      }
+    },
     "/items": {
       "get": {
         "summary": "Get all items",
         "tags": ["Items"],
+        "description": "Retrieves all items from the database (public access)",
+        "security": [],
         "responses": {
           "200": {
-            "description": "Array of items (each with 8 fields: name, description, price, category, inStock, sku, weight, manufacturer)"
+            "description": "Array of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Item"
+                  }
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "Create a new item",
         "tags": ["Items"],
+        "description": "Creates a new item (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -36,14 +406,14 @@
                 "type": "object",
                 "required": ["name", "description", "price", "category", "inStock", "sku"],
                 "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" },
-                  "price": { "type": "number" },
-                  "category": { "type": "string" },
-                  "inStock": { "type": "boolean" },
-                  "sku": { "type": "string" },
-                  "weight": { "type": "number" },
-                  "manufacturer": { "type": "string" }
+                  "name": { "type": "string", "example": "Smartphone" },
+                  "description": { "type": "string", "example": "Latest model smartphone" },
+                  "price": { "type": "number", "example": 699.99 },
+                  "category": { "type": "string", "example": "Electronics" },
+                  "inStock": { "type": "boolean", "example": true },
+                  "sku": { "type": "string", "example": "PHN-001" },
+                  "weight": { "type": "number", "example": 0.5 },
+                  "manufacturer": { "type": "string", "example": "PhoneCorp" }
                 }
               }
             }
@@ -51,7 +421,29 @@
         },
         "responses": {
           "201": {
-            "description": "Item created"
+            "description": "Item created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "id": { "type": "string" },
+                    "item": { "$ref": "#/components/schemas/Item" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "412": {
             "description": "Validation failed – missing required fields or invalid type"
@@ -66,18 +458,28 @@
       "get": {
         "summary": "Get an item by ID",
         "tags": ["Items"],
+        "description": "Retrieves a single item by its MongoDB ObjectId (public access)",
+        "security": [],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": { "type": "string" },
-            "description": "MongoDB ObjectId (24 hex chars)"
+            "description": "MongoDB ObjectId (24 hex chars)",
+            "example": "507f1f77bcf86cd799439011"
           }
         ],
         "responses": {
           "200": {
-            "description": "Item found"
+            "description": "Item found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid ID format"
@@ -93,6 +495,12 @@
       "put": {
         "summary": "Update an item (partial update allowed)",
         "tags": ["Items"],
+        "description": "Updates an existing item (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -124,10 +532,13 @@
         },
         "responses": {
           "200": {
-            "description": "Item updated"
+            "description": "Item updated successfully"
           },
           "400": {
             "description": "Invalid ID format or invalid JSON"
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first"
           },
           "404": {
             "description": "Item not found"
@@ -143,6 +554,12 @@
       "delete": {
         "summary": "Delete an item",
         "tags": ["Items"],
+        "description": "Deletes an item by ID (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -153,10 +570,24 @@
         ],
         "responses": {
           "200": {
-            "description": "Item deleted"
+            "description": "Item deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "deletedCount": { "type": "number" }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid ID format"
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first"
           },
           "404": {
             "description": "Item not found"
@@ -171,9 +602,21 @@
       "get": {
         "summary": "Get all categories",
         "tags": ["Categories"],
+        "description": "Retrieves all categories from the database (public access)",
+        "security": [],
         "responses": {
           "200": {
-            "description": "Array of categories"
+            "description": "Array of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal server error"
@@ -183,6 +626,12 @@
       "post": {
         "summary": "Create a new category",
         "tags": ["Categories"],
+        "description": "Creates a new category (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -191,7 +640,8 @@
                 "type": "object",
                 "required": ["name"],
                 "properties": {
-                  "name": { "type": "string" }
+                  "name": { "type": "string", "example": "Books" },
+                  "description": { "type": "string", "example": "All kinds of books" }
                 }
               }
             }
@@ -199,10 +649,20 @@
         },
         "responses": {
           "201": {
-            "description": "Category created"
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing 'name' field"
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first"
           },
           "500": {
             "description": "Internal server error"
@@ -214,17 +674,27 @@
       "get": {
         "summary": "Get a category by ID",
         "tags": ["Categories"],
+        "description": "Retrieves a single category by ID (public access)",
+        "security": [],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": { "type": "string" },
+            "example": "507f1f77bcf86cd799439011"
           }
         ],
         "responses": {
           "200": {
-            "description": "Category found"
+            "description": "Category found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid ID format"
@@ -240,6 +710,12 @@
       "put": {
         "summary": "Update a category",
         "tags": ["Categories"],
+        "description": "Updates an existing category (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -256,7 +732,8 @@
                 "type": "object",
                 "required": ["name"],
                 "properties": {
-                  "name": { "type": "string" }
+                  "name": { "type": "string" },
+                  "description": { "type": "string" }
                 }
               }
             }
@@ -264,10 +741,13 @@
         },
         "responses": {
           "200": {
-            "description": "Category updated"
+            "description": "Category updated successfully"
           },
           "400": {
             "description": "Invalid ID or missing name"
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first"
           },
           "404": {
             "description": "Category not found"
@@ -280,6 +760,12 @@
       "delete": {
         "summary": "Delete a category",
         "tags": ["Categories"],
+        "description": "Deletes a category by ID (requires GitHub authentication)",
+        "security": [
+          {
+            "oauth2": ["read:user"]
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -290,10 +776,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Category deleted"
+            "description": "Category deleted successfully"
           },
           "400": {
             "description": "Invalid ID format"
+          },
+          "401": {
+            "description": "Unauthorized - Please login with GitHub first"
           },
           "404": {
             "description": "Category not found"
@@ -304,5 +793,23 @@
         }
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "System endpoints"
+    },
+    {
+      "name": "Authentication",
+      "description": "GitHub OAuth authentication endpoints"
+    },
+    {
+      "name": "Items",
+      "description": "CRUD operations for items"
+    },
+    {
+      "name": "Categories",
+      "description": "CRUD operations for categories"
+    }
+  ]
 }
