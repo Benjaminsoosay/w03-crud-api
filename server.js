@@ -127,7 +127,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// Get authentication status - ADDED NEW ROUTE
+// Get authentication status
 app.get('/auth/status', (req, res) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     res.json({
@@ -159,6 +159,25 @@ app.get('/auth/google/callback',
 
 // Logout endpoint
 app.get('/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+      }
+      res.json({ 
+        message: '✅ Successfully logged out',
+        redirect: '/'
+      });
+    });
+  });
+});
+
+// Swagger-compatible logout endpoint (alias for /logout) - ADDED FOR SWAGGER
+app.get('/auth/logout', (req, res, next) => {
   req.logout((err) => {
     if (err) {
       console.error('Logout error:', err);
