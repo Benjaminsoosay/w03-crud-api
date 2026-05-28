@@ -3,7 +3,7 @@
   "info": {
     "title": "W03 CRUD API",
     "version": "2.0.0",
-    "description": "API with two collections (items and categories). Full CRUD, validation, error handling, and GitHub OAuth authentication.",
+    "description": "API with two collections (items and categories). Full CRUD, validation, error handling, and Google OAuth authentication.",
     "contact": {
       "name": "API Support"
     },
@@ -23,16 +23,16 @@
   ],
   "components": {
     "securitySchemes": {
-      "githubOAuth": {
+      "googleOAuth": {
         "type": "oauth2",
-        "description": "GitHub OAuth2 Authentication",
+        "description": "Google OAuth2 Authentication",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://github.com/login/oauth/authorize",
-            "tokenUrl": "https://github.com/login/oauth/access_token",
+            "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth",
+            "tokenUrl": "https://oauth2.googleapis.com/token",
             "scopes": {
-              "read:user": "Read user information",
-              "user:email": "Read user email"
+              "profile": "Read user profile information",
+              "email": "Read user email address"
             }
           }
         }
@@ -77,8 +77,8 @@
           "user": {
             "type": "object",
             "properties": {
-              "username": { "type": "string" },
-              "displayName": { "type": "string" }
+              "displayName": { "type": "string" },
+              "email": { "type": "string" }
             }
           }
         }
@@ -87,7 +87,7 @@
   },
   "security": [
     {
-      "githubOAuth": ["read:user"]
+      "googleOAuth": ["profile", "email"]
     }
   ],
   "paths": {
@@ -120,13 +120,13 @@
         }
       }
     },
-    "/auth/github": {
+    "/auth/google": {
       "get": {
-        "summary": "Authenticate with GitHub",
+        "summary": "Authenticate with Google",
         "tags": ["Authentication"],
         "responses": {
           "302": {
-            "description": "Redirect to GitHub OAuth"
+            "description": "Redirect to Google OAuth"
           }
         }
       }
@@ -168,7 +168,7 @@
         "tags": ["Items"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "requestBody": {
@@ -197,14 +197,7 @@
             "description": "Item created"
           },
           "400": {
-            "description": "Validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "Validation error"
           },
           "401": {
             "description": "Authentication required"
@@ -239,7 +232,7 @@
         "tags": ["Items"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "parameters": [
@@ -277,7 +270,7 @@
         "tags": ["Items"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "parameters": [
@@ -317,7 +310,7 @@
         "tags": ["Categories"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "requestBody": {
@@ -372,7 +365,7 @@
         "tags": ["Categories"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "parameters": [
@@ -397,7 +390,7 @@
         "tags": ["Categories"],
         "security": [
           {
-            "githubOAuth": ["read:user"]
+            "googleOAuth": ["profile", "email"]
           }
         ],
         "parameters": [
