@@ -127,6 +127,24 @@ app.get('/', (req, res) => {
   }
 });
 
+// Get authentication status - ADDED NEW ROUTE
+app.get('/auth/status', (req, res) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    res.json({
+      authenticated: true,
+      user: {
+        displayName: req.user.displayName,
+        email: req.user.emails?.[0]?.value
+      }
+    });
+  } else {
+    res.json({
+      authenticated: false,
+      user: null
+    });
+  }
+});
+
 // Google authentication endpoints
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
