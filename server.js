@@ -186,9 +186,22 @@ app.get('/protected-test', ensureAuthenticated, (req, res) => {
 });
 
 // ========================
-// Swagger Docs
+// Swagger Docs with OAuth Redirect Support (UPDATED)
 // ========================
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Swagger UI Options to enable OAuth2 popup
+const swaggerOptions = {
+  swaggerOptions: {
+    oauth2RedirectUrl: 'https://w03-crud-api-1.onrender.com/api-docs/oauth2-redirect.html',
+    clientId: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  },
+};
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, swaggerOptions)
+);
 
 // ========================
 // MongoDB Connection
